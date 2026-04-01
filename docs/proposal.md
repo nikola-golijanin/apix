@@ -87,7 +87,7 @@ Run [apix import] to add your first service.
 
 ---
 
-### `service remove` — Unregister a service
+### ✅ `service remove` — Unregister a service
 
 ```
 apix service remove <name>
@@ -103,7 +103,7 @@ apix service remove <name>
 
 ---
 
-### `service update` — Refresh a service schema
+### ✅ `service update` — Refresh a service schema
 
 Updates the schema for a registered service. Supports two modes:
 
@@ -860,9 +860,16 @@ dotnet run -- import --name petstore --base-url https://petstore.example.com --s
 
 ```bash
 dotnet run -- service list
-dotnet run -- service remove orderService
-dotnet run -- service update orderService
-dotnet run -- service update orderService --file ./openapi-v2.json
+
+# remove (prompts for confirmation)
+dotnet run -- service remove petstore
+
+# update from URL (service must have been imported with a URL --schema)
+dotnet run -- import --name petstore --base-url https://petstore3.swagger.io --schema https://petstore3.swagger.io/api/v3/openapi.json
+dotnet run -- service update petstore
+
+# update from local file
+dotnet run -- service update petstore --file ../../samples/petstore.json
 ```
 
 ### `endpoints`
