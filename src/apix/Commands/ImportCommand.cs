@@ -9,7 +9,7 @@ using Spectre.Console.Cli;
 
 namespace apix.Commands;
 
-public class ImportCommand(IHttpClientFactory httpClientFactory, ServiceRegistry registry) : AsyncCommand<ImportCommand.Settings>
+public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<ImportCommand.Settings>
 {
     public class Settings : CommandSettings
     {
