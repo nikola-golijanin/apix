@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/apix/apix.csproj" Id="9270e73e-4b33-4b1f-94b4-dfb2a9e17fb4" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/proposal.md" />
+  </Folder>
+</Solution>
