@@ -19,7 +19,7 @@ Designed for teams working with many services, it removes friction from day-to-d
 
 ## Commands
 
-### `import` — Register a service
+### ✅ `import` — Register a service
 
 Imports an OpenAPI schema and registers the service locally.
 
@@ -60,7 +60,7 @@ orderService is ready. Run [apix endpoints list orderService] to explore.
 
 ---
 
-### `service list` — List registered services
+### ✅ `service list` — List registered services
 
 ```
 apix service list
@@ -179,7 +179,7 @@ Updating orderService...
 
 ---
 
-### `endpoints list` — List endpoints for a service
+### ✅ `endpoints list` — List endpoints for a service
 
 ```
 apix endpoints list <name>
@@ -191,14 +191,18 @@ apix endpoints list <name> --tag Orders
 
 ```
 orderService — https://api.orders.internal
-──────────────────────────────────────────────────────────────────
-  GET     /orders/{orderId}              get-order
-  POST    /orders                        create-order
-  DELETE  /orders/{orderId}              cancel-order
-  GET     /orders                        list-orders
-  POST    /payments/initiate             initiate-payment
-  GET     /payments/{paymentId}          get-payment
+──────────────────────────────────────────────────────────────────────────────
+  Verb     Route                    Operation ID   Tag
+──────────────────────────────────────────────────────────────────────────────
+  GET      /orders/{orderId}        get-order      orders
+  POST     /orders                  create-order   orders
+  DELETE   /orders/{orderId}        cancel-order   orders
+  GET      /orders                  list-orders    orders
+  POST     /payments/initiate       initiate-payment  payments
+  GET      /payments/{paymentId}    get-payment    payments
 ```
+
+Column widths adjust dynamically to fit the widest value in each column.
 
 HTTP methods are color-coded:
 - `GET` — green
@@ -211,9 +215,11 @@ HTTP methods are color-coded:
 
 ```
 orderService — https://api.orders.internal  [POST]
-──────────────────────────────────────────────────────────────────
-  POST    /orders                        create-order
-  POST    /payments/initiate             initiate-payment
+──────────────────────────────────────────────────────────────────────────────
+  Verb     Route                    Operation ID      Tag
+──────────────────────────────────────────────────────────────────────────────
+  POST     /orders                  create-order      orders
+  POST     /payments/initiate       initiate-payment  payments
 ```
 
 **Errors**
