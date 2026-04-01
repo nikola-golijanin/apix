@@ -2,9 +2,16 @@ using apix.Commands;
 using apix.Commands.Auth;
 using apix.Commands.Endpoints;
 using apix.Commands.Service;
+using apix.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
-var app = new CommandApp();
+var services = new ServiceCollection();
+services.AddHttpClient();
+
+var registrar = new TypeRegistrar(services);
+var app = new CommandApp(registrar);
+
 app.Configure(config =>
 {
     config.SetApplicationName("apix");

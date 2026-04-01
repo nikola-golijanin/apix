@@ -843,8 +843,11 @@ dotnet run -- config --help
 ### `import`
 
 ```bash
-dotnet run -- import --name orderService --base-url https://api.orders.internal --schema ./openapi.json
-dotnet run -- import --name orderService --base-url https://api.orders.internal --schema https://api.orders.internal/swagger/v1/swagger.json
+# from a URL
+dotnet run -- import --name petstore --base-url https://petstore3.swagger.io --schema https://petstore3.swagger.io/api/v3/openapi.json
+
+# from a local file (samples/petstore.json at repo root)
+dotnet run -- import --name petstore --base-url https://petstore.example.com --schema ../../samples/petstore.json
 ```
 
 ### `service`
