@@ -3,11 +3,13 @@ using apix.Commands.Auth;
 using apix.Commands.Endpoints;
 using apix.Commands.Service;
 using apix.Infrastructure;
+using apix.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 
 var services = new ServiceCollection();
 services.AddHttpClient();
+services.AddSingleton<ServiceRegistry>();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);

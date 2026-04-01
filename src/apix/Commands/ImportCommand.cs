@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using apix.Models;
+using apix.Services;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Reader;
@@ -7,7 +9,7 @@ using Spectre.Console.Cli;
 
 namespace apix.Commands;
 
-public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<ImportCommand.Settings>
+public class ImportCommand(IHttpClientFactory httpClientFactory, ServiceRegistry registry) : AsyncCommand<ImportCommand.Settings>
 {
     public class Settings : CommandSettings
     {
@@ -29,7 +31,7 @@ public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
         AnsiConsole.MarkupLine($"Importing [cyan]{settings.Name}[/]...");
         AnsiConsole.WriteLine();
 
-        var (stream, loadError) = await LoadSchemaAsync(settings.Schema, cancellationToken);
+        var (schemaBytes, isUrl, loadError) = await LoadSchemaBytesAsync(settings.Schema, cancellationToken);
         if (loadError is not null)
         {
             AnsiConsole.MarkupLine(loadError);
@@ -37,9 +39,7 @@ public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
         }
 
         var reader = new OpenApiJsonReader();
-        var result = await reader.ReadAsync(stream!, new OpenApiReaderSettings(), cancellationToken);
-        
-        await stream!.DisposeAsync();
+        var result = await reader.ReadAsync(new MemoryStream(schemaBytes!), new OpenApiReaderSettings(), cancellationToken);
 
         if (result.Diagnostic?.Errors.Count > 0 || result.Document is not { } document)
         {
@@ -58,15 +58,23 @@ public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
 
         var endpointCount = document.Paths?.Sum(p => p.Value.Operations?.Count ?? 0) ?? 0;
 
+        var schemaSource = isUrl
+            ? new SchemaSource(SchemaSourceType.Url, settings.Schema)
+            : new SchemaSource(SchemaSourceType.File, Path.GetFullPath(settings.Schema));
+
+        var entry = new ServiceEntry(settings.Name, settings.BaseUrl, schemaSource, endpointCount, DateTimeOffset.UtcNow);
+        await ServiceRegistry.UpsertAsync(entry, schemaBytes!);
+
         AnsiConsole.MarkupLine($"  [green]✓[/] Schema loaded     [grey]({versionLabel})[/]");
         AnsiConsole.MarkupLine($"  [green]✓[/] {endpointCount} endpoints parsed");
+        AnsiConsole.MarkupLine($"  [green]✓[/] Saved to registry");
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine($"[cyan]{settings.Name}[/] is ready. Run [grey][[apix endpoints list {settings.Name}]][/] to explore.");
 
         return 0;
     }
 
-    private async Task<(Stream? stream, string? error)> LoadSchemaAsync(string schema, CancellationToken cancellationToken)
+    private async Task<(byte[]? bytes, bool isUrl, string? error)> LoadSchemaBytesAsync(string schema, CancellationToken cancellationToken)
     {
         var isUrl = Uri.TryCreate(schema, UriKind.Absolute, out var uri)
                     && (uri.Scheme == "http" || uri.Scheme == "https");
@@ -75,21 +83,20 @@ public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
         {
             try
             {
-                var httpClient = httpClientFactory.CreateClient();
-                var stream = await httpClient.GetStreamAsync(schema, cancellationToken);
-                return (stream, null);
+                var bytes = await httpClientFactory.CreateClient().GetByteArrayAsync(schema, cancellationToken);
+                return (bytes, true, null);
             }
             catch
             {
                 var error = $"  [red]✕[/] Could not reach schema URL: [grey]{schema}[/]\n" +
                             $"    [grey]→ Check the URL or use a local file path with --schema ./openapi.json[/]";
-                return (null, error);
+                return (null, true, error);
             }
         }
 
         if (!File.Exists(schema))
-            return (null, $"  [red]✕[/] File not found: [grey]{schema}[/]");
+            return (null, false, $"  [red]✕[/] File not found: [grey]{schema}[/]");
 
-        return (File.OpenRead(schema), null);
+        return (await File.ReadAllBytesAsync(schema, cancellationToken), false, null);
     }
 }
