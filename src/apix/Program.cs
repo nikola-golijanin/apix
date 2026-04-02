@@ -1,7 +1,7 @@
 using apix.Commands;
 using apix.Commands.Auth;
 using apix.Commands.Config;
-using apix.Commands.Endpoints;
+using apix.Commands.Endpoint;
 using apix.Commands.Service;
 using apix.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,9 +32,9 @@ app.Configure(config =>
 
     config.AddBranch("endpoint", endpoints =>
     {
-        endpoints.AddCommand<EndpointsListCommand>("list")
+        endpoints.AddCommand<EndpointListCommand>("list")
                  .WithDescription("List endpoints for a service");
-        endpoints.AddCommand<EndpointsDetailCommand>("details")
+        endpoints.AddCommand<EndpointDetailCommand>("details")
                  .WithDescription("Show details for a single operation");
     });
 

@@ -6,14 +6,13 @@ using apix.Helpers;
 using apix.Services;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Models.Interfaces;
-using Microsoft.OpenApi.Models.References;
 using Microsoft.OpenApi.Reader;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace apix.Commands.Endpoints;
+namespace apix.Commands.Endpoint;
 
-public class EndpointsDetailCommand : AsyncCommand<EndpointsDetailCommand.Settings>
+public class EndpointDetailCommand : AsyncCommand<EndpointDetailCommand.Settings>
 {
     private static readonly JsonSerializerOptions PrettyJson = new()
     {

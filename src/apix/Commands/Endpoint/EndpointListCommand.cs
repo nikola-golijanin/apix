@@ -1,13 +1,12 @@
 using System.ComponentModel;
 using apix.Services;
-using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Reader;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace apix.Commands.Endpoints;
+namespace apix.Commands.Endpoint;
 
-public class EndpointsListCommand : AsyncCommand<EndpointsListCommand.Settings>
+public class EndpointListCommand : AsyncCommand<EndpointListCommand.Settings>
 {
     public class Settings : CommandSettings
     {
