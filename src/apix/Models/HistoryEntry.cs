@@ -5,6 +5,7 @@ public record HistoryEntry(
     DateTimeOffset Timestamp,
     string Method,
     string Url,
+    string OperationId,
     Dictionary<string, string> RequestHeaders,
     string? RequestBody,
     int StatusCode,

@@ -1,10 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Web;
+using apix.Helpers;
 using apix.Models;
 using apix.Services;
 using Microsoft.OpenApi.Models;
@@ -16,7 +16,6 @@ namespace apix.Commands;
 
 public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<CallCommand.Settings>
 {
-    private const int TruncateLines = 40;
 
     public class Settings : CommandSettings
     {
@@ -76,8 +75,8 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
         var (pathPattern, method, operation) = found.Value;
 
         // 4. Build call inputs (open editor if needed)
-        var pathParams   = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var queryParams  = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var pathParams = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var queryParams = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var headerParams = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string? requestBody = null;
 
@@ -125,22 +124,21 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
             requestHeaders["Content-Type"] = "application/json";
         }
 
-        // Separator width driven by the request line length (content-based, like endpoints list)
         var sepWidth = Math.Max(40, $"► {method} {url}".Length);
 
         // 7. Print request block
-        Separator(sepWidth);
+        OutputHelpers.Separator(sepWidth);
         AnsiConsole.MarkupLine("  [grey]REQUEST[/]");
-        Separator(sepWidth);
+        OutputHelpers.Separator(sepWidth);
         AnsiConsole.MarkupLine($"  {method} {url}");
         if (settings.Verbose)
         {
-            PrintHeaders(requestHeaders);
+            OutputHelpers.PrintHeaders(requestHeaders);
             if (requestBody is not null)
             {
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("  [grey]Body:[/]");
-                PrintBody(requestBody, full: true);
+                OutputHelpers.PrintBody(requestBody, full: true);
             }
         }
         AnsiConsole.WriteLine();
@@ -174,22 +172,22 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
 
         var isSuccess = statusCode is >= 200 and < 400;
         var statusColor = isSuccess ? "green" : "red";
-        var statusIcon  = isSuccess ? "◆" : "✕";
+        var statusIcon = isSuccess ? "◆" : "✕";
 
         // 10. Print response
-        Separator(sepWidth);
+        OutputHelpers.Separator(sepWidth);
         AnsiConsole.MarkupLine($"  [grey]RESPONSE[/]  [{statusColor}]{statusIcon} {statusCode} {statusText}[/]  [grey][[{durationMs}ms]][/]");
-        Separator(sepWidth);
+        OutputHelpers.Separator(sepWidth);
         if (settings.Verbose)
         {
-            PrintHeaders(responseHeaders);
+            OutputHelpers.PrintHeaders(responseHeaders);
         }
 
         if (!string.IsNullOrWhiteSpace(responseBody))
         {
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("  [grey]Body:[/]");
-            var truncated = PrintBody(responseBody, settings.Verbose);
+            var truncated = OutputHelpers.PrintBody(responseBody, settings.Verbose);
             if (truncated)
             {
                 AnsiConsole.WriteLine();
@@ -206,6 +204,7 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
                 Timestamp: DateTimeOffset.UtcNow,
                 Method: method.Method,
                 Url: url,
+                OperationId: settings.OperationId,
                 RequestHeaders: requestHeaders,
                 RequestBody: requestBody,
                 StatusCode: statusCode,
@@ -266,9 +265,9 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
         out string? body,
         out string? error)
     {
-        pathParams  = new(StringComparer.OrdinalIgnoreCase);
+        pathParams = new(StringComparer.OrdinalIgnoreCase);
         queryParams = new(StringComparer.OrdinalIgnoreCase);
-        headers     = new(StringComparer.OrdinalIgnoreCase);
+        headers = new(StringComparer.OrdinalIgnoreCase);
         body = null;
         error = null;
 
@@ -326,40 +325,4 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
         return url;
     }
 
-    private static void Separator(int width) =>
-        AnsiConsole.MarkupLine($"[grey]{new string('─', width)}[/]");
-
-    private static void PrintHeaders(Dictionary<string, string> headers)
-    {
-        if (headers.Count == 0) return;
-        var pad = headers.Keys.Max(k => k.Length) + 4;
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("  [grey]Headers:[/]");
-        foreach (var (k, v) in headers)
-            AnsiConsole.MarkupLine($"  [grey]  {k.PadRight(pad)}{v}[/]");
-    }
-
-    /// <summary>Returns true if the body was truncated.</summary>
-    private static bool PrintBody(string body, bool full)
-    {
-        string display;
-        try
-        {
-            var node = JsonNode.Parse(body);
-            display = node?.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) ?? body;
-        }
-        catch
-        {
-            display = body;
-        }
-
-        var lines = display.Split('\n');
-        var truncated = !full && lines.Length > TruncateLines;
-        var printLines = truncated ? lines.Take(TruncateLines) : lines;
-
-        foreach (var line in printLines)
-            AnsiConsole.WriteLine("  " + line);
-
-        return truncated;
-    }
 }

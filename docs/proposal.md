@@ -235,11 +235,7 @@ orderService — https://api.orders.internal  [POST]
 
 ```
 apix call <service> <operationId>
-apix call <service> <operationId> --param <key=value> --param <key=value>
-apix call <service> <operationId> --body '<json>'
-apix call <service> <operationId> --body @./payload.json
 apix call <service> <operationId> --verbose
-apix call <service> <operationId> --full
 apix call <service> <operationId> --no-save
 ```
 
@@ -247,30 +243,30 @@ apix call <service> <operationId> --no-save
 
 | Flag | Description |
 |---|---|
-| `--param key=value` | Pass path or query parameters |
-| `--body '<json>'` | Provide request body inline |
-| `--body @file.json` | Load request body from a file |
-| `--verbose` | Print full request and response headers |
-| `--full` | Print full response body without truncation |
+| `-v, --verbose` | Print full request/response headers and full response body |
 | `--no-save` | Execute the request but do not save it to history |
 
 **Examples**
 
 ```
-apix call orderService get-order --param orderId=abc-123
-apix call orderService list-orders --param page=1 --param pageSize=20
-apix call orderService create-order --body '{"symbol":"BTC","quantity":1,"side":"Buy"}'
-apix call orderService create-order --body @./order.json
-apix call orderService list-orders --full
-apix call orderService get-order --param orderId=abc-123 --no-save
+apix call orderService get-order
+apix call orderService create-order --verbose
+apix call orderService get-order --no-save
 ```
+
+Parameters, query strings, headers, and request body are provided interactively via the editor (see Editor Input below).
 
 **Default output (successful response)**
 
 ```
-► POST https://api.orders.internal/orders
+──────────────────────────────────────────────────────────
+  REQUEST
+──────────────────────────────────────────────────────────
+  POST https://api.orders.internal/orders
 
-◆ 201 Created  [143ms]
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 201 Created  [143ms]
+──────────────────────────────────────────────────────────
 
   Body:
   {
@@ -284,18 +280,16 @@ apix call orderService get-order --param orderId=abc-123 --no-save
   Saved as #4 — [apix history orderService 4] to inspect · [apix replay orderService 4] to replay
 ```
 
-**With `--verbose` (full headers printed)**
+**With `--verbose` (headers + full body)**
 
 ```
-─────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────
   REQUEST
-─────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────
   POST https://api.orders.internal/orders
 
   Headers:
     Content-Type    application/json
-    Authorization   Bearer eyJhbGc...
-    Accept          application/json
 
   Body:
   {
@@ -304,9 +298,9 @@ apix call orderService get-order --param orderId=abc-123 --no-save
     "side": "Buy"
   }
 
-─────────────────────────────────────────────────────────────
-  RESPONSE  201 Created  [143ms]
-─────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 201 Created  [143ms]
+──────────────────────────────────────────────────────────
   Headers:
     Content-Type    application/json
     Location        /orders/abc-123
@@ -326,7 +320,9 @@ apix call orderService get-order --param orderId=abc-123 --no-save
 **Large response body (truncated by default)**
 
 ```
-◆ 200 OK  [212ms]
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 200 OK  [212ms]
+──────────────────────────────────────────────────────────
 
   Body:
   {
@@ -338,8 +334,8 @@ apix call orderService get-order --param orderId=abc-123 --no-save
       ...
     ]
   }
-  ... 201 lines truncated — run [apix history orderService 4 --full] to see full response
-  or rerun with --full to print immediately
+
+  ... lines truncated — rerun with --verbose to print in full
 
   Saved as #4 — [apix history orderService 4] to inspect · [apix replay orderService 4] to replay
 ```
@@ -347,9 +343,9 @@ apix call orderService get-order --param orderId=abc-123 --no-save
 **Error response**
 
 ```
-► GET https://api.orders.internal/orders/999
-
-✕ 404 Not Found  [87ms]
+──────────────────────────────────────────────────────────
+  RESPONSE  ✕ 404 Not Found  [87ms]
+──────────────────────────────────────────────────────────
 
   Body:
   {
@@ -358,21 +354,6 @@ apix call orderService get-order --param orderId=abc-123 --no-save
   }
 
   Saved as #5 — [apix history orderService 5] to inspect · [apix replay orderService 5] to replay
-```
-
-**Server error**
-
-```
-► POST https://api.orders.internal/payments/initiate
-
-✕ 500 Internal Server Error  [1203ms]
-
-  Body:
-  {
-    "error": "Unexpected error occurred"
-  }
-
-  Saved as #6 — [apix history orderService 6] to inspect · [apix replay orderService 6] to replay
 ```
 
 **Network failure**
@@ -385,9 +366,9 @@ apix call orderService get-order --param orderId=abc-123 --no-save
 **With `--no-save`**
 
 ```
-► GET https://api.orders.internal/orders/abc-123
-
-◆ 200 OK  [87ms]
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 200 OK  [87ms]
+──────────────────────────────────────────────────────────
 
   Body:
   {
@@ -401,40 +382,40 @@ apix call orderService get-order --param orderId=abc-123 --no-save
 **No response body (204)**
 
 ```
-► DELETE https://api.orders.internal/orders/abc-123
-
-◆ 204 No Content  [61ms]
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 204 No Content  [61ms]
+──────────────────────────────────────────────────────────
 
   Saved as #7 — [apix history orderService 7] to inspect · [apix replay orderService 7] to replay
 ```
 
-#### Body Builder (interactive)
+#### Editor Input
 
-When a request requires a body and `--body` is not provided, the tool generates a JSON template from the schema and opens it in the configured editor:
+When an operation has path parameters, query parameters, header parameters, or a request body, apix opens the configured editor with a pre-filled JSON template. Operations with none of these (e.g. a plain `GET /health`) execute immediately without opening the editor.
 
-```
-► create-order requires a request body.
-
-  Generating template from schema...
-  Opening in editor (code --wait)...
-
-  [user edits and saves the file]
-
-✓ Body loaded — sending request...
-```
-
-The generated template pre-fills field names with type hints as placeholder values:
+The template is split into sections — only sections relevant to the operation are included:
 
 ```json
 {
-  "symbol": "<string>",
-  "quantity": "<number>",
-  "side": "<string: Buy | Sell>",
-  "clientOrderId": "<string?>"
+  "path": {
+    "orderId": "string"
+  },
+  "query": {
+    "page": "integer?"
+  },
+  "headers": {
+    "X-Correlation-Id": "string?"
+  },
+  "body": {
+    "symbol": "string",
+    "quantity": "integer",
+    "side": "Buy | Sell",
+    "clientOrderId": "string?"
+  }
 }
 ```
 
-Required fields are unmarked. Optional fields are annotated with `?`. Enum values are listed inline.
+Required fields are plain type names (`string`, `integer`). Optional fields are annotated with `?`. Enum values are listed inline. The editor is resolved in order: `~/.apix/config.json` → `$EDITOR` env var → `notepad` (Windows) / `nano` (Linux/macOS). VS Code is automatically launched with `--wait`.
 
 ---
 
@@ -476,12 +457,14 @@ apix history <service>
 **Output**
 
 ```
-orderService — last 10 requests
-──────────────────────────────────────────────────────────────────
-  #1   POST    /orders                   201    143ms   2 min ago
-  #2   GET     /orders/abc-123           200     87ms   2 min ago
-  #3   GET     /orders/999               404     61ms   1 min ago
-  #4   POST    /payments/initiate        400    203ms   just now
+orderService — last 20 requests
+──────────────────────────────────────────────────────────────────────────────
+  #   Method   Path                         Status   Duration   Operation     When
+──────────────────────────────────────────────────────────────────────────────
+  #1  POST     /orders                      201       143ms     create-order  2 min ago
+  #2  GET      /orders/abc-123              200        87ms     get-order     2 min ago
+  #3  GET      /orders/999                  404        61ms     get-order     1 min ago
+  #4  POST     /payments/initiate           400       203ms     init-payment  just now
 ```
 
 Status codes are color-coded:
@@ -490,33 +473,36 @@ Status codes are color-coded:
 - `4xx` — yellow
 - `5xx` — red
 
+Column widths are content-driven. Shows last 20 entries, newest first.
+
 **Empty state**
 
 ```
 No requests made to orderService yet.
-Run [apix call orderService <operationId>] to get started.
+  → Run [apix call orderService <operationId>] to get started.
 ```
 
 **Inspect a specific request**
 
 ```
+apix history <service>
+apix history <service> -a|--all
 apix history <service> <id>
 apix history <service> <id> --verbose
-apix history <service> <id> --full
 apix history <service> <id> --request-only
 apix history <service> <id> --response-only
-apix history <service> <id> --curl
+apix history <service> <id> -c|--curl
 ```
 
 **Flags**
 
 | Flag | Description |
 |---|---|
-| `--verbose` | Include request and response headers |
-| `--full` | Print full response body without truncation |
+| `-a, --all` | Show all history entries (default: last 20) |
+| `-v, --verbose` | Show request/response headers and full response body |
 | `--request-only` | Print only the request block |
 | `--response-only` | Print only the response block |
-| `--curl` | Print the request as a curl command |
+| `-c, --curl` | Print the request as a curl command |
 
 **Default inspect output**
 
@@ -536,7 +522,7 @@ apix history <service> <id> --curl
   }
 
 ─────────────────────────────────────────────────────────────
-  RESPONSE  201 Created  [143ms]
+  RESPONSE  ◆ 201 Created  [143ms]
 ─────────────────────────────────────────────────────────────
   Body:
   {
@@ -550,7 +536,7 @@ apix history <service> <id> --curl
 
 **With `--verbose`**
 
-Same as above but with headers printed under both REQUEST and RESPONSE blocks. Bearer tokens are truncated to `Bearer eyJhbGc...`.
+Same as above but with headers printed under both REQUEST and RESPONSE blocks, and full response body (no truncation).
 
 **With `--request-only`**
 
@@ -576,7 +562,7 @@ Same as above but with headers printed under both REQUEST and RESPONSE blocks. B
 ─────────────────────────────────────────────────────────────
   #4 — 31 Mar 2025  10:42:07
 ─────────────────────────────────────────────────────────────
-  RESPONSE  201 Created  [143ms]
+  RESPONSE  ◆ 201 Created  [143ms]
 ─────────────────────────────────────────────────────────────
   Body:
   {
@@ -593,7 +579,6 @@ Same as above but with headers printed under both REQUEST and RESPONSE blocks. B
 ```
 curl -X POST https://api.orders.internal/orders \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGc..." \
   -d '{"symbol":"BTC","quantity":1,"side":"Buy"}'
 ```
 
