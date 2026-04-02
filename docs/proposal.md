@@ -231,7 +231,7 @@ orderService — https://api.orders.internal  [POST]
 
 ---
 
-### `call` — Execute a request
+### ✅ `call` — Execute a request
 
 ```
 apix call <service> <operationId>
@@ -415,11 +415,11 @@ The template is split into sections — only sections relevant to the operation 
 }
 ```
 
-Required fields are plain type names (`string`, `integer`). Optional fields are annotated with `?`. Enum values are listed inline. The editor is resolved in order: `~/.apix/config.json` → `$EDITOR` env var → `notepad` (Windows) / `nano` (Linux/macOS). VS Code is automatically launched with `--wait`.
+Required fields are plain type names (`string`, `integer`). Optional fields are annotated with `?`. Enum values are listed inline. The editor is resolved in order: `~/.apix/config.json` → `$EDITOR` env var → `notepad` (Windows) / `nano` (Linux/macOS). The `vscode` preset automatically expands to `code --wait`.
 
 ---
 
-### `auth set` — Store authentication for a service
+### `auth set` — Store authentication for a service *(not yet implemented)*
 
 ```
 apix auth set <service> --bearer <token>
@@ -446,7 +446,7 @@ apix auth remove <service>
 
 ---
 
-### `history` — View and inspect past requests
+### ✅ `history` — View and inspect past requests
 
 **List recent requests**
 
@@ -584,7 +584,7 @@ curl -X POST https://api.orders.internal/orders \
 
 ---
 
-### `replay` — Re-execute a previous request
+### `replay` — Re-execute a previous request *(not yet implemented)*
 
 ```
 apix replay <service> <id>
@@ -611,7 +611,7 @@ Replaying #3 — GET /orders/999
 ---
 ---
 
-### `config` — Manage global configuration
+### ✅ `config` — Manage global configuration
 
 Configure global tool behaviour, such as the preferred editor for body building.
 
@@ -629,17 +629,28 @@ apix config list
 2. `$EDITOR` environment variable (if set)
 3. Falls back to `nano` on Linux/macOS, `notepad` on Windows
 
+**Supported presets**
+
+| Preset | Launches |
+|--------|----------|
+| `vim` | `vim` |
+| `nano` | `nano` |
+| `vscode` | `code --wait` |
+| `notepad` | `notepad` |
+
+Any other value is treated as a custom command and used as-is.
+
 **Set editor**
 
 ```
 apix config set editor vim
 apix config set editor nano
-apix config set editor "code --wait"
-apix config set editor "notepad"
-apix config set editor "notepad++"
+apix config set editor vscode
+apix config set editor notepad
+apix config set editor "my-editor --wait"
 ```
 
-Note: for editors that open a new window (VS Code, Notepad++), the `--wait` flag or equivalent must be included so the CLI knows when editing is complete.
+VS Code (`vscode`) is automatically expanded to `code --wait` — no need to include the flag manually.
 
 **View current editor**
 
@@ -648,7 +659,7 @@ apix config get editor
 ```
 
 ```
-editor = code --wait
+  editor    vscode   →  code --wait
 ```
 
 **List all config**
@@ -658,7 +669,12 @@ apix config list
 ```
 
 ```
-editor = code --wait
+Config
+────────────────────────────────────────
+  editor    vscode   →  code --wait
+
+  Presets: vim · nano · vscode · notepad
+  Run [apix config set editor <preset>] to change.
 ```
 
 **Reset to default**
@@ -668,7 +684,7 @@ apix config unset editor
 ```
 
 ```
-✓ editor reset to default.
+  ✔ editor unset (will use $EDITOR or system default)
 ```
 
 ---
@@ -907,8 +923,9 @@ dotnet run -- replay orderService 3
 ```bash
 dotnet run -- config list
 dotnet run -- config get editor
-dotnet run -- config set editor "code --wait"
+dotnet run -- config set editor vscode
 dotnet run -- config set editor vim
 dotnet run -- config set editor notepad
+dotnet run -- config set editor "my-editor --wait"
 dotnet run -- config unset editor
 ```

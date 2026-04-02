@@ -1,5 +1,6 @@
 using apix.Commands;
 using apix.Commands.Auth;
+using apix.Commands.Config;
 using apix.Commands.Endpoints;
 using apix.Commands.Service;
 using apix.Infrastructure;
@@ -52,8 +53,17 @@ app.Configure(config =>
     config.AddCommand<ReplayCommand>("replay")
           .WithDescription("Re-execute a previous request");
 
-    config.AddCommand<ConfigCommand>("config")
-          .WithDescription("View or set global configuration");
+    config.AddBranch("config", cfg =>
+    {
+        cfg.AddCommand<ConfigSetCommand>("set")
+           .WithDescription("Set a config value");
+        cfg.AddCommand<ConfigGetCommand>("get")
+           .WithDescription("Get a config value");
+        cfg.AddCommand<ConfigListCommand>("list")
+           .WithDescription("Show all config values");
+        cfg.AddCommand<ConfigUnsetCommand>("unset")
+           .WithDescription("Remove a config override");
+    });
 });
 
 return app.Run(args);

@@ -15,11 +15,19 @@ public static class EditorService
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
+    public static readonly string[] KnownPresets = ["vim", "nano", "vscode", "notepad"];
+
+    public static string ExpandPreset(string value) => value.ToLowerInvariant() switch
+    {
+        "vscode" => "code --wait",
+        _        => value
+    };
+
     public static async Task<string> ResolveEditorAsync()
     {
         var configured = await ConfigService.GetEditorAsync();
         if (!string.IsNullOrWhiteSpace(configured))
-            return configured;
+            return ExpandPreset(configured);
 
         var envEditor = Environment.GetEnvironmentVariable("EDITOR");
         if (!string.IsNullOrWhiteSpace(envEditor))
@@ -129,16 +137,30 @@ public static class EditorService
             argsPrefix = string.IsNullOrEmpty(argsPrefix) ? "--wait" : argsPrefix + " --wait";
         }
 
-        var arguments = string.IsNullOrEmpty(argsPrefix)
+        var editorArgs = string.IsNullOrEmpty(argsPrefix)
             ? $"\"{filePath}\""
             : $"{argsPrefix} \"{filePath}\"";
 
-        var psi = new ProcessStartInfo
+        // On Windows, wrap in cmd.exe so batch files (code.cmd) are resolved correctly.
+        ProcessStartInfo psi;
+        if (OperatingSystem.IsWindows())
         {
-            FileName = executable,
-            Arguments = arguments,
-            UseShellExecute = false
-        };
+            psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {executable} {editorArgs}",
+                UseShellExecute = false
+            };
+        }
+        else
+        {
+            psi = new ProcessStartInfo
+            {
+                FileName = executable,
+                Arguments = editorArgs,
+                UseShellExecute = false
+            };
+        }
 
         using var process = Process.Start(psi)
             ?? throw new InvalidOperationException($"Failed to start editor: {executable}");

@@ -31,6 +31,15 @@ public static class ConfigService
         await File.WriteAllTextAsync(ConfigPath, json);
     }
 
+    public static async Task UnsetEditorAsync()
+    {
+        var config = await LoadAsync() ?? new AppConfig(null);
+        var updated = config with { Editor = null };
+        Directory.CreateDirectory(RootDir);
+        var json = JsonSerializer.Serialize(updated, JsonOptions);
+        await File.WriteAllTextAsync(ConfigPath, json);
+    }
+
     private static async Task<AppConfig?> LoadAsync()
     {
         if (!File.Exists(ConfigPath))
