@@ -30,10 +30,12 @@ app.Configure(config =>
                .WithDescription("Refresh a service schema");
     });
 
-    config.AddBranch("endpoints", endpoints =>
+    config.AddBranch("endpoint", endpoints =>
     {
         endpoints.AddCommand<EndpointsListCommand>("list")
                  .WithDescription("List endpoints for a service");
+        endpoints.AddCommand<EndpointsDetailCommand>("details")
+                 .WithDescription("Show details for a single operation");
     });
 
     config.AddCommand<CallCommand>("call")
@@ -64,6 +66,7 @@ app.Configure(config =>
         cfg.AddCommand<ConfigUnsetCommand>("unset")
            .WithDescription("Remove a config override");
     });
+
 });
 
 return app.Run(args);

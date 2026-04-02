@@ -43,7 +43,7 @@ Importing orderService...
   ✓ 24 endpoints parsed
   ✓ Saved to registry
 
-orderService is ready. Run [apix endpoints list orderService] to explore.
+orderService is ready. Run [apix endpoint list orderService] to explore.
 ```
 
 **Errors**
@@ -179,12 +179,12 @@ Updating orderService...
 
 ---
 
-### ✅ `endpoints list` — List endpoints for a service
+### ✅ `endpoint list` — List endpoints for a service
 
 ```
-apix endpoints list <name>
-apix endpoints list <name> --method GET
-apix endpoints list <name> --tag Orders
+apix endpoint list <name>
+apix endpoint list <name> --method GET
+apix endpoint list <name> --tag Orders
 ```
 
 **Output**
@@ -816,7 +816,7 @@ Relevant `.csproj` properties:
 1. `apix config set editor` — configure preferred editor
 2. `apix import` — register a live service from its Swagger URL
 3. `apix service list` — show the registry
-4. `apix endpoints list` — explore parsed endpoints
+4. `apix endpoint list` — explore parsed endpoints
 5. `apix call` — call a GET endpoint with a path param, show `Saved as #N` footer
 6. `apix call` — call a POST endpoint, trigger body builder in editor, send
 7. `apix call --verbose` — show full request and response headers
@@ -839,7 +839,7 @@ Run from `src/apix/` during development. Replace `apix <command>` with `dotnet r
 dotnet run -- --help
 dotnet run -- import --help
 dotnet run -- service --help
-dotnet run -- endpoints --help
+dotnet run -- endpoint --help
 dotnet run -- call --help
 dotnet run -- auth --help
 dotnet run -- history --help
@@ -873,12 +873,12 @@ dotnet run -- service update petstore
 dotnet run -- service update petstore --file ../../samples/petstore.json
 ```
 
-### `endpoints`
+### `endpoint`
 
 ```bash
-dotnet run -- endpoints list orderService
-dotnet run -- endpoints list orderService --method GET
-dotnet run -- endpoints list orderService --tag Orders
+dotnet run -- endpoint list orderService
+dotnet run -- endpoint list orderService --method GET
+dotnet run -- endpoint list orderService --tag Orders
 ```
 
 ### `call`

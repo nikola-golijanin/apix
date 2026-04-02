@@ -75,11 +75,23 @@ public class HistoryCommand : AsyncCommand<HistoryCommand.Settings>
 
         var idWidth     = recent.Max(e => $"#{e.Id}".Length);
         var mthWidth    = Math.Max("Method".Length,    recent.Max(e => e.Method.Length));
-        var pathWidth   = Math.Max("Path".Length,      recent.Max(e => StripBase(e.Url, service.BaseUrl).Length));
         var statusWidth = Math.Max("Status".Length,    recent.Max(e => e.StatusCode.ToString().Length));
         var durWidth    = Math.Max("Duration".Length,  recent.Max(e => $"{e.DurationMs}ms".Length));
-        var opWidth     = Math.Max("Operation".Length, recent.Max(e => (e.OperationId ?? "").Length));
-        var whenWidth   = "When".Length;
+        var whenWidth   = Math.Max("When".Length,      recent.Max(e => OutputHelpers.FormatAge(e.Timestamp).Length));
+
+        // Cap path/op widths to terminal so rows never wrap
+        var terminalWidth = AnsiConsole.Profile.Width;
+        var fixedOverhead = 2 + idWidth + 2 + mthWidth + 2 + statusWidth + 2 + durWidth + 2 + whenWidth + 2;
+        var remaining     = Math.Max(24, terminalWidth - fixedOverhead);
+        var pathMax       = remaining * 3 / 5;
+        var opMax         = remaining * 2 / 5;
+
+        var pathWidth = Math.Min(
+            Math.Max("Path".Length,      recent.Max(e => StripBase(e.Url, service.BaseUrl).Length)),
+            Math.Max("Path".Length,      pathMax));
+        var opWidth   = Math.Min(
+            Math.Max("Operation".Length, recent.Max(e => (e.OperationId ?? "").Length)),
+            Math.Max("Operation".Length, opMax));
 
         var lineWidth = idWidth + 2 + mthWidth + 2 + pathWidth + 2 + statusWidth + 2 + durWidth + 2 + opWidth + 2 + whenWidth;
 
@@ -96,10 +108,10 @@ public class HistoryCommand : AsyncCommand<HistoryCommand.Settings>
             var statusColor = StatusColor(e.StatusCode);
             var id       = Markup.Escape($"#{e.Id}".PadRight(idWidth));
             var method   = Markup.Escape(e.Method.PadRight(mthWidth));
-            var path     = Markup.Escape(StripBase(e.Url, service.BaseUrl).PadRight(pathWidth));
+            var path     = Markup.Escape(Trunc(StripBase(e.Url, service.BaseUrl), pathWidth).PadRight(pathWidth));
             var status   = Markup.Escape(e.StatusCode.ToString().PadRight(statusWidth));
             var duration = Markup.Escape($"{e.DurationMs}ms".PadRight(durWidth));
-            var opId     = Markup.Escape((e.OperationId ?? "").PadRight(opWidth));
+            var opId     = Markup.Escape(Trunc(e.OperationId ?? "", opWidth).PadRight(opWidth));
             var when     = Markup.Escape(OutputHelpers.FormatAge(e.Timestamp));
 
             AnsiConsole.MarkupLine(
@@ -210,6 +222,9 @@ public class HistoryCommand : AsyncCommand<HistoryCommand.Settings>
         >= 400 and < 500 => "yellow",
         _                => "red"
     };
+
+    private static string Trunc(string s, int max) =>
+        s.Length <= max ? s : s[..(max - 1)] + "…";
 
     private static string StripBase(string url, string baseUrl)
     {

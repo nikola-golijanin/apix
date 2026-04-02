@@ -24,7 +24,7 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
         public required string Service { get; init; }
 
         [CommandArgument(1, "<operationId>")]
-        [Description("Operation ID to call (see 'apix endpoints list <service>')")]
+        [Description("Operation ID to call (see 'apix endpoint list <service>')")]
         public required string OperationId { get; init; }
 
         [CommandOption("-v|--verbose")]

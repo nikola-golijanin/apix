@@ -69,7 +69,7 @@ public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
         AnsiConsole.MarkupLine($"  [green]✓[/] {endpointCount} endpoints parsed");
         AnsiConsole.MarkupLine($"  [green]✓[/] Saved to registry");
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine($"[cyan]{settings.Name}[/] is ready. Run [grey][[apix endpoints list {settings.Name}]][/] to explore.");
+        AnsiConsole.MarkupLine($"[cyan]{settings.Name}[/] is ready. Run [grey][[apix endpoint list {settings.Name}]][/] to explore.");
 
         return 0;
     }

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi.Models;
 using Microsoft.OpenApi.Models.Interfaces;
+using Microsoft.OpenApi.Models.References;
 
 namespace apix.Services;
 
@@ -168,49 +169,79 @@ public static class EditorService
         await process.WaitForExitAsync(cancellationToken);
     }
 
-    private static JsonNode SchemaToNode(IOpenApiSchema? schema, int depth)
+    /// Unwraps a reference to its target; returns the schema as-is otherwise.
+    private static IOpenApiSchema? Resolve(IOpenApiSchema? schema) => schema switch
     {
-        if (schema is null)
-            return JsonValue.Create("unknown")!;
+        OpenApiSchemaReference r => r.Target ?? schema,
+        _                        => schema
+    };
 
-        // Enum: use first value as default
+    private static JsonNode SchemaToNode(IOpenApiSchema? raw, int depth)
+    {
+        var schema = Resolve(raw) ?? raw;
+        if (schema is null)
+            return JsonValue.Create("string")!;
+
+        // Enum: use first value as hint
         if (schema.Enum is { Count: > 0 } enumValues)
         {
-            var first = enumValues[0]?.ToString() ?? "<string>";
+            var first = enumValues[0]?.ToString() ?? "string";
             return JsonValue.Create(first)!;
         }
 
-        // Object with properties
-        if (schema.Properties is { Count: > 0 } props)
+        // Collect properties from direct definition AND allOf/anyOf/oneOf
+        var props = CollectProperties(schema);
+
+        if (props.Count > 0)
         {
+            if (depth > 5) return JsonValue.Create("object")!;
             var obj = new JsonObject();
             foreach (var (name, propSchema) in props)
             {
                 var required = schema.Required?.Contains(name) ?? false;
-                obj[name] = depth < 2
-                    ? SchemaToNode(propSchema, depth + 1)
-                    : JsonValue.Create(SchemaToHint(propSchema, required))!;
+                obj[name] = SchemaToNode(propSchema, depth + 1);
             }
             return obj;
         }
 
         // Array
-        var type = schema.Type;
-        if (HasType(type, JsonSchemaType.Array) || schema.Items is not null)
+        if (HasType(schema.Type, JsonSchemaType.Array) || schema.Items is not null)
         {
-            var itemHint = schema.Items is not null
+            var itemNode = schema.Items is not null
                 ? SchemaToNode(schema.Items, depth + 1)
                 : JsonValue.Create("unknown")!;
-            return new JsonArray(itemHint);
+            return new JsonArray(itemNode);
         }
 
-        return JsonValue.Create(SchemaToHint(schema, required: true))!;
+        return JsonValue.Create(SchemaToHint(raw, required: true))!;
     }
 
-    private static string SchemaToHint(IOpenApiSchema? schema, bool required)
+    /// Merges properties from direct definition and allOf/anyOf/oneOf sub-schemas.
+    private static Dictionary<string, IOpenApiSchema> CollectProperties(IOpenApiSchema schema)
     {
+        var result = new Dictionary<string, IOpenApiSchema>(StringComparer.OrdinalIgnoreCase);
+
+        if (schema.Properties is not null)
+            foreach (var (k, v) in schema.Properties)
+                result[k] = v;
+
+        var combined = (schema.AllOf ?? []).Concat(schema.AnyOf ?? []).Concat(schema.OneOf ?? []);
+        foreach (var sub in combined)
+        {
+            var resolved = Resolve(sub);
+            if (resolved?.Properties is null) continue;
+            foreach (var (k, v) in resolved.Properties)
+                result[k] = v;
+        }
+
+        return result;
+    }
+
+    public static string SchemaToHint(IOpenApiSchema? raw, bool required)
+    {
+        var schema = Resolve(raw) ?? raw;
         if (schema is null)
-            return required ? "unknown" : "unknown?";
+            return required ? "string" : "string?";
 
         // Enum: list options
         if (schema.Enum is { Count: > 0 } enumValues)
@@ -219,16 +250,20 @@ public static class EditorService
             return required ? options : $"{options}?";
         }
 
-        var type = schema.Type;
+        // Object: has direct properties or allOf/anyOf/oneOf
+        var props = CollectProperties(schema);
+        if (props.Count > 0)
+            return required ? "object" : "object?";
+
         var hint = true switch
         {
-            true when HasType(type, JsonSchemaType.Integer) => "integer",
-            true when HasType(type, JsonSchemaType.Number)  => "number",
-            true when HasType(type, JsonSchemaType.Boolean) => "boolean",
-            true when HasType(type, JsonSchemaType.Array)   => "array",
-            true when HasType(type, JsonSchemaType.Object)  => "object",
-            true when HasType(type, JsonSchemaType.String)  => "string",
-            _                                               => "string"
+            true when HasType(schema.Type, JsonSchemaType.Integer) => "integer",
+            true when HasType(schema.Type, JsonSchemaType.Number)  => "number",
+            true when HasType(schema.Type, JsonSchemaType.Boolean) => "boolean",
+            true when HasType(schema.Type, JsonSchemaType.Array)   => "array",
+            true when HasType(schema.Type, JsonSchemaType.Object)  => "object",
+            true when HasType(schema.Type, JsonSchemaType.String)  => "string",
+            _                                                      => "string"
         };
 
         return required ? hint : $"{hint}?";
