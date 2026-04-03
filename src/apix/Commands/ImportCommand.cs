@@ -13,17 +13,24 @@ public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
 {
     public class Settings : CommandSettings
     {
-        [CommandOption("--name <name>")]
+        [CommandOption("-n|--name <name>")]
         [Description("Name to register the service under")]
         public required string Name { get; init; }
 
         [CommandOption("--base-url <url>")]
         [Description("Base URL of the service")]
-        public required string BaseUrl { get; init; }
+        public string? BaseUrl { get; init; }
 
-        [CommandOption("--schema <path|url>")]
+        [CommandOption("-s|--schema <path|url>")]
         [Description("Local file path or URL to the OpenAPI schema")]
         public required string Schema { get; init; }
+
+        public override ValidationResult Validate()
+        {
+            if (string.IsNullOrWhiteSpace(BaseUrl))
+                return ValidationResult.Error("--base-url is required.");
+            return ValidationResult.Success();
+        }
     }
 
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
