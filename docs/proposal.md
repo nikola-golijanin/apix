@@ -584,11 +584,22 @@ curl -X POST https://api.orders.internal/orders \
 
 ---
 
-### `replay` — Re-execute a previous request *(not yet implemented)*
+### ✅ `replay` — Re-execute a previous request
 
 ```
 apix replay <service> <id>
+apix replay <service> <id> --edit
+apix replay <service> <id> --no-save
+apix replay <service> <id> --verbose
 ```
+
+**Flags**
+
+| Flag | Description |
+|---|---|
+| `-e, --edit` | Open editor pre-filled with stored request values before sending |
+| `--no-save` | Execute but do not save to history |
+| `-v, --verbose` | Print full request/response headers and full response body |
 
 **Output**
 
@@ -916,6 +927,9 @@ dotnet run -- history orderService 4 --curl
 
 ```bash
 dotnet run -- replay orderService 3
+dotnet run -- replay orderService 3 --edit
+dotnet run -- replay orderService 3 --no-save
+dotnet run -- replay orderService 3 --verbose
 ```
 
 ### `config`

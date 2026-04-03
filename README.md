@@ -2,6 +2,26 @@
 
 A terminal-native HTTP client for developers managing multiple microservices. Import OpenAPI schemas, execute requests, and track history — all from the CLI.
 
+## Quick Start
+
+```bash
+# 1. Import a service from its OpenAPI schema
+apix import --name petstore --base-url https://petstore3.swagger.io --schema https://petstore3.swagger.io/api/v3/openapi.json
+
+# 2. Explore available endpoints
+apix endpoint list petstore
+
+# 3. Call an endpoint
+apix call petstore getPetById
+
+# 4. Review history
+apix history petstore
+```
+
+## Documentation
+
+See [docs/usage.md](docs/usage.md) for the full command reference.
+
 ## Installation
 
 ### Binary (no runtime needed)
