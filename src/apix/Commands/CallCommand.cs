@@ -1,9 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Web;
 using apix.Helpers;
 using apix.Models;
 using apix.Services;
@@ -103,7 +100,7 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
                 return 1;
             }
 
-            if (!TryParseInputs(editedJson, out pathParams, out queryParams, out headerParams, out requestBody, out var parseError))
+            if (!RequestHelpers.TryParseInputs(editedJson, out pathParams, out queryParams, out headerParams, out requestBody, out var parseError))
             {
                 AnsiConsole.MarkupLine($"  [red]✕[/] Invalid JSON in editor: {parseError}");
                 return 1;
@@ -111,7 +108,7 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
         }
 
         // 5. Build URL
-        var url = BuildUrl(entry.BaseUrl, pathPattern, pathParams, queryParams);
+        var url = RequestHelpers.BuildUrl(entry.BaseUrl, pathPattern, pathParams, queryParams);
 
         // 6. Build HTTP request
         using var request = new HttpRequestMessage(method, url);
@@ -275,73 +272,5 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
             .Where(id => id.Length > 0)
             .OrderBy(id => id)
             .ToList() ?? [];
-
-    private static bool TryParseInputs(
-        string json,
-        out Dictionary<string, string> pathParams,
-        out Dictionary<string, string> queryParams,
-        out Dictionary<string, string> headers,
-        out string? body,
-        out string? error)
-    {
-        pathParams = new(StringComparer.OrdinalIgnoreCase);
-        queryParams = new(StringComparer.OrdinalIgnoreCase);
-        headers = new(StringComparer.OrdinalIgnoreCase);
-        body = null;
-        error = null;
-
-        JsonNode? root;
-        try
-        {
-            root = JsonNode.Parse(json);
-        }
-        catch (JsonException ex)
-        {
-            error = ex.Message;
-            return false;
-        }
-
-        if (root is not JsonObject rootObj)
-        {
-            error = "Root must be a JSON object.";
-            return false;
-        }
-
-        if (rootObj["path"] is JsonObject pathObj)
-            foreach (var (k, v) in pathObj)
-                pathParams[k] = v?.ToString() ?? "";
-
-        if (rootObj["query"] is JsonObject queryObj)
-            foreach (var (k, v) in queryObj)
-                queryParams[k] = v?.ToString() ?? "";
-
-        if (rootObj["headers"] is JsonObject headersObj)
-            foreach (var (k, v) in headersObj)
-                headers[k] = v?.ToString() ?? "";
-
-        if (rootObj["body"] is JsonNode bodyNode)
-            body = bodyNode.ToJsonString();
-
-        return true;
-    }
-
-    private static string BuildUrl(string baseUrl, string pathPattern, Dictionary<string, string> pathParams, Dictionary<string, string> queryParams)
-    {
-        var path = pathPattern;
-        foreach (var (k, v) in pathParams)
-            path = path.Replace($"{{{k}}}", Uri.EscapeDataString(v), StringComparison.OrdinalIgnoreCase);
-
-        var url = baseUrl.TrimEnd('/') + path;
-
-        if (queryParams.Count > 0)
-        {
-            var qs = HttpUtility.ParseQueryString(string.Empty);
-            foreach (var (k, v) in queryParams)
-                qs[k] = v;
-            url += "?" + qs;
-        }
-
-        return url;
-    }
 
 }
