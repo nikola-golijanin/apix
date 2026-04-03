@@ -43,7 +43,11 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
         if (entry is null)
         {
             AnsiConsole.MarkupLine($"  [red]✕[/] Service not found: [grey]{settings.Service}[/]");
-            AnsiConsole.MarkupLine($"    [grey]→ Run [[apix service list]] to see registered services.[/]");
+            var allNames = (await ServiceRegistry.LoadAllAsync()).Select(e => e.Name);
+            var suggestion = StringHelpers.FindClosestMatch(settings.Service, allNames);
+            AnsiConsole.MarkupLine(suggestion is not null
+                ? $"    [grey]→ Did you mean: [white]{Markup.Escape(suggestion)}[/]?[/]"
+                : $"    [grey]→ Run [[apix service list]] to see registered services.[/]");
             return 1;
         }
 
@@ -63,7 +67,12 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
         {
             AnsiConsole.MarkupLine($"  [red]✕[/] Operation not found: [grey]{settings.OperationId}[/]");
             var available = ListOperationIds(doc);
-            if (available.Count > 0)
+            var opSuggestion = StringHelpers.FindClosestMatch(settings.OperationId, available);
+            if (opSuggestion is not null)
+            {
+                AnsiConsole.MarkupLine($"    [grey]→ Did you mean: [white]{Markup.Escape(opSuggestion)}[/]?[/]");
+            }
+            else if (available.Count > 0)
             {
                 AnsiConsole.MarkupLine($"    [grey]→ Available operations in [white]{settings.Service}[/][grey]:[/]");
                 foreach (var id in available)
@@ -145,25 +154,35 @@ public class CallCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<Ca
 
         // 8. Execute
         var stopwatch = Stopwatch.StartNew();
-        HttpResponseMessage response;
-        try
+        HttpResponseMessage? response = null;
+        HttpRequestException? connectError = null;
+
+        await AnsiConsole.Status()
+            .StartAsync("Sending request…", async ctx =>
+            {
+                try
+                {
+                    var client = httpClientFactory.CreateClient();
+                    response = await client.SendAsync(request, cancellationToken);
+                }
+                catch (HttpRequestException ex)
+                {
+                    connectError = ex;
+                }
+            });
+
+        stopwatch.Stop();
+
+        if (connectError is not null)
         {
-            var client = httpClientFactory.CreateClient();
-            response = await client.SendAsync(request, cancellationToken);
-        }
-        catch (HttpRequestException)
-        {
-            stopwatch.Stop();
             AnsiConsole.MarkupLine($"[red]✕[/] Could not connect to [grey]{entry.BaseUrl}[/]");
             AnsiConsole.MarkupLine($"  [grey]→ Service may be unavailable or base URL is incorrect.[/]");
             return 1;
         }
-
-        stopwatch.Stop();
         var durationMs = stopwatch.ElapsedMilliseconds;
 
         // 9. Read response
-        var statusCode = (int)response.StatusCode;
+        var statusCode = (int)response!.StatusCode;
         var statusText = response.ReasonPhrase ?? response.StatusCode.ToString();
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         var responseHeaders = response.Headers

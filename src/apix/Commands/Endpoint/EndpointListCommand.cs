@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using apix.Helpers;
 using apix.Services;
 using Microsoft.OpenApi.Reader;
 using Spectre.Console;
@@ -21,6 +22,10 @@ public class EndpointListCommand : AsyncCommand<EndpointListCommand.Settings>
         [CommandOption("-t|--tag <tag>")]
         [Description("Filter by tag")]
         public string? Tag { get; init; }
+
+        [CommandOption("-q|--quiet")]
+        [Description("Output only raw data, one item per line (pipe-friendly)")]
+        public bool Quiet { get; init; }
     }
 
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -29,7 +34,11 @@ public class EndpointListCommand : AsyncCommand<EndpointListCommand.Settings>
         if (entry is null)
         {
             AnsiConsole.MarkupLine($"  [red]✕[/] Service not found: [grey]{settings.Service}[/]");
-            AnsiConsole.MarkupLine($"    [grey]→ Run [[apix service list]] to see registered services.[/]");
+            var allNames = (await ServiceRegistry.LoadAllAsync()).Select(e => e.Name);
+            var suggestion = StringHelpers.FindClosestMatch(settings.Service, allNames);
+            AnsiConsole.MarkupLine(suggestion is not null
+                ? $"    [grey]→ Did you mean: [white]{Markup.Escape(suggestion)}[/]?[/]"
+                : $"    [grey]→ Run [[apix service list]] to see registered services.[/]");
             return 1;
         }
 
@@ -66,9 +75,19 @@ public class EndpointListCommand : AsyncCommand<EndpointListCommand.Settings>
 
         if (operations.Count == 0)
         {
+            if (settings.Quiet) 
+                return 0;
+            
             AnsiConsole.MarkupLine(header);
             AnsiConsole.MarkupLine(new string('─', 66));
             AnsiConsole.MarkupLine("  [grey]No endpoints match the given filters.[/]");
+            return 0;
+        }
+
+        if (settings.Quiet)
+        {
+            foreach (var (method, path, operationId, _) in operations)
+                Console.WriteLine($"{method}\t{path}\t{operationId}");
             return 0;
         }
 

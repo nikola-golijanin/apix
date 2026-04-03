@@ -39,6 +39,10 @@ public class HistoryCommand : AsyncCommand<HistoryCommand.Settings>
         [CommandOption("-a|--all")]
         [Description("Show all history entries")]
         public bool TakeAll { get; init; }
+
+        [CommandOption("-q|--quiet")]
+        [Description("Output only raw data, one item per line (pipe-friendly, list mode only)")]
+        public bool Quiet { get; init; }
     }
 
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -47,7 +51,11 @@ public class HistoryCommand : AsyncCommand<HistoryCommand.Settings>
         if (service is null)
         {
             AnsiConsole.MarkupLine($"  [red]✕[/] Service not found: [grey]{settings.Service}[/]");
-            AnsiConsole.MarkupLine($"    [grey]→ Run [[apix service list]] to see registered services.[/]");
+            var allNames = (await ServiceRegistry.LoadAllAsync()).Select(e => e.Name);
+            var suggestion = StringHelpers.FindClosestMatch(settings.Service, allNames);
+            AnsiConsole.MarkupLine(suggestion is not null
+                ? $"    [grey]→ Did you mean: [white]{Markup.Escape(suggestion)}[/]?[/]"
+                : $"    [grey]→ Run [[apix service list]] to see registered services.[/]");
             return 1;
         }
 
@@ -64,14 +72,24 @@ public class HistoryCommand : AsyncCommand<HistoryCommand.Settings>
 
         if (entries.Count == 0)
         {
+            if (settings.Quiet)
+                return 0;
+            
             AnsiConsole.MarkupLine($"[grey]No requests made to [white]{settings.Service}[/] yet.[/]");
             AnsiConsole.MarkupLine($"  [grey]→ Run [[apix call {settings.Service} <operationId>]] to get started.[/]");
             return 0;
         }
 
-        var recent = settings.TakeAll 
+        var recent = settings.TakeAll
             ? [.. entries.OrderByDescending(e => e.Id)]
             : entries.OrderByDescending(e => e.Id).Take(20).ToList();
+
+        if (settings.Quiet)
+        {
+            foreach (var e in recent)
+                Console.WriteLine($"#{e.Id}\t{e.Method}\t{e.Url}\t{e.StatusCode}\t{e.OperationId}");
+            return 0;
+        }
 
         var idWidth     = recent.Max(e => $"#{e.Id}".Length);
         var mthWidth    = Math.Max("Method".Length,    recent.Max(e => e.Method.Length));

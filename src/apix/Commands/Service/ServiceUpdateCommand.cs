@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using apix.Helpers;
 using apix.Models;
 using apix.Services;
 using Microsoft.OpenApi.Models;
@@ -27,12 +28,16 @@ public class ServiceUpdateCommand(IHttpClientFactory httpClientFactory) : AsyncC
         if (entry is null)
         {
             AnsiConsole.MarkupLine($"  [red]✕[/] Service not found: [grey]{settings.Name}[/]");
-            AnsiConsole.MarkupLine($"    [grey]→ Run [[apix service list]] to see registered services.[/]");
+            var allNames = (await ServiceRegistry.LoadAllAsync()).Select(e => e.Name);
+            var suggestion = StringHelpers.FindClosestMatch(settings.Name, allNames);
+            AnsiConsole.MarkupLine(suggestion is not null
+                ? $"    [grey]→ Did you mean: [white]{Markup.Escape(suggestion)}[/]?[/]"
+                : $"    [grey]→ Run [[apix service list]] to see registered services.[/]");
             return 1;
         }
 
         // Resolve source mode
-        bool isFileMode = settings.File is not null;
+        var isFileMode = settings.File is not null;
 
         if (!isFileMode && entry.SchemaSource.Type == SchemaSourceType.File)
         {
@@ -42,34 +47,44 @@ public class ServiceUpdateCommand(IHttpClientFactory httpClientFactory) : AsyncC
             return 1;
         }
 
-        var label = isFileMode ? $"Updating [cyan]{settings.Name}[/] from file..." : $"Updating [cyan]{settings.Name}[/]...";
-        AnsiConsole.MarkupLine(label);
-        AnsiConsole.WriteLine();
+        byte[]? newBytes = null;
+        string? loadError = null;
+        OpenApiDocument? newDoc = null;
+        string? versionLabel = null;
 
-        // Load new schema bytes
-        var (newBytes, loadError) = await LoadNewBytesAsync(settings, entry, cancellationToken);
+        var spinnerLabel = isFileMode ? "Loading schema from file…" : "Fetching updated schema…";
+        await AnsiConsole.Status()
+            .StartAsync(spinnerLabel, async ctx =>
+            {
+                var (bytes, error) = await LoadNewBytesAsync(settings, entry, cancellationToken);
+                if (error is not null) { loadError = error; return; }
+                newBytes = bytes;
+
+                ctx.Status("Parsing schema…");
+                var reader = new OpenApiJsonReader();
+                var newResult = await reader.ReadAsync(new MemoryStream(newBytes!), new OpenApiReaderSettings(), cancellationToken);
+                if (newResult.Document is not { } doc) { loadError = "__parse_failed__"; return; }
+
+                newDoc = doc;
+                versionLabel = newResult.Diagnostic?.SpecificationVersion switch
+                {
+                    Microsoft.OpenApi.OpenApiSpecVersion.OpenApi2_0 => "OpenAPI 2.0",
+                    Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0 => "OpenAPI 3.0",
+                    Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1 => "OpenAPI 3.1",
+                    _ => "OpenAPI"
+                };
+            });
+
+        if (loadError == "__parse_failed__")
+        {
+            AnsiConsole.MarkupLine("  [red]✕[/] Invalid OpenAPI schema — failed to parse document.");
+            return 1;
+        }
         if (loadError is not null)
         {
             AnsiConsole.MarkupLine(loadError);
             return 1;
         }
-
-        // Parse new schema
-        var reader = new OpenApiJsonReader();
-        var newResult = await reader.ReadAsync(new MemoryStream(newBytes!), new OpenApiReaderSettings(), cancellationToken);
-        if (newResult.Document is not { } newDoc)
-        {
-            AnsiConsole.MarkupLine("  [red]✕[/] Invalid OpenAPI schema — failed to parse document.");
-            return 1;
-        }
-
-        var versionLabel = newResult.Diagnostic?.SpecificationVersion switch
-        {
-            Microsoft.OpenApi.OpenApiSpecVersion.OpenApi2_0 => "OpenAPI 2.0",
-            Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0 => "OpenAPI 3.0",
-            Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1 => "OpenAPI 3.1",
-            _ => "OpenAPI"
-        };
 
         AnsiConsole.MarkupLine(isFileMode
             ? $"  [green]✓[/] Schema loaded         [grey]({versionLabel})[/]"
@@ -77,26 +92,28 @@ public class ServiceUpdateCommand(IHttpClientFactory httpClientFactory) : AsyncC
 
         // Compute diff against old schema
         await using var oldStream = ServiceRegistry.OpenSchema(settings.Name);
-        var oldResult = await reader.ReadAsync(oldStream, new OpenApiReaderSettings(), cancellationToken);
+        var diffReader = new OpenApiJsonReader();
+        var oldResult = await diffReader.ReadAsync(oldStream, new OpenApiReaderSettings(), cancellationToken);
         var oldOps = ExtractOperations(oldResult.Document);
-        var newOps = ExtractOperations(newDoc);
+        var newOps = ExtractOperations(newDoc!);
 
         var added   = newOps.Where(n => !oldOps.Any(o => o.Method == n.Method && o.Path == n.Path)).ToList();
         var removed = oldOps.Where(o => !newOps.Any(n => n.Method == o.Method && n.Path == o.Path)).ToList();
 
-        if (added.Count == 0 && removed.Count == 0)
+        switch (added.Count)
         {
-            AnsiConsole.MarkupLine("  [green]✓[/] No changes detected — registry is already up to date.");
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine($"[cyan]{settings.Name}[/] is up to date.");
-            return 0;
-        }
-
-        if (added.Count > 0)
-        {
-            AnsiConsole.MarkupLine($"  [green]✓[/] {added.Count} endpoint{(added.Count == 1 ? "" : "s")} added");
-            foreach (var op in added)
-                AnsiConsole.MarkupLine($"    [green]+[/]  [green]{op.Method,-7}[/]  [white]{op.Path,-40}[/]  [grey]{op.OperationId}[/]");
+            case 0 when removed.Count == 0:
+                AnsiConsole.MarkupLine("  [green]✓[/] No changes detected — registry is already up to date.");
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[cyan]{settings.Name}[/] is up to date.");
+                return 0;
+            case > 0:
+            {
+                AnsiConsole.MarkupLine($"  [green]✓[/] {added.Count} endpoint{(added.Count == 1 ? "" : "s")} added");
+                foreach (var op in added)
+                    AnsiConsole.MarkupLine($"    [green]+[/]  [green]{op.Method,-7}[/]  [white]{op.Path,-40}[/]  [grey]{op.OperationId}[/]");
+                break;
+            }
         }
 
         if (removed.Count > 0)

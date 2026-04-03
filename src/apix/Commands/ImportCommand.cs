@@ -28,35 +28,56 @@ public class ImportCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
 
     protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        AnsiConsole.MarkupLine($"Importing [cyan]{settings.Name}[/]...");
-        AnsiConsole.WriteLine();
+        byte[]? schemaBytes = null;
+        var isUrl = false;
+        string? loadError = null;
+        OpenApiDocument? document = null;
+        string? versionLabel = null;
+        var endpointCount = 0;
+        var parseFailed = false;
 
-        var (schemaBytes, isUrl, loadError) = await LoadSchemaBytesAsync(settings.Schema, cancellationToken);
+        await AnsiConsole.Status()
+            .StartAsync("Fetching schema…", async ctx =>
+            {
+                var (bytes, url, error) = await LoadSchemaBytesAsync(settings.Schema, cancellationToken);
+                if (error is not null) { loadError = error; return; }
+
+                schemaBytes = bytes;
+                isUrl = url;
+
+                ctx.Status("Parsing schema…");
+                var reader = new OpenApiJsonReader();
+                var result = await reader.ReadAsync(new MemoryStream(schemaBytes!), new OpenApiReaderSettings(), cancellationToken);
+
+                if (result.Diagnostic?.Errors.Count > 0 || result.Document is not { } doc)
+                {
+                    parseFailed = true;
+                    return;
+                }
+
+                document = doc;
+                versionLabel = result.Diagnostic?.SpecificationVersion switch
+                {
+                    OpenApiSpecVersion.OpenApi2_0 => "OpenAPI 2.0",
+                    OpenApiSpecVersion.OpenApi3_0 => "OpenAPI 3.0",
+                    OpenApiSpecVersion.OpenApi3_1 => "OpenAPI 3.1",
+                    _ => "OpenAPI"
+                };
+                endpointCount = document.Paths?.Sum(p => p.Value.Operations?.Count ?? 0) ?? 0;
+            });
+
         if (loadError is not null)
         {
             AnsiConsole.MarkupLine(loadError);
             return 1;
         }
 
-        var reader = new OpenApiJsonReader();
-        var result = await reader.ReadAsync(new MemoryStream(schemaBytes!), new OpenApiReaderSettings(), cancellationToken);
-
-        if (result.Diagnostic?.Errors.Count > 0 || result.Document is not { } document)
+        if (parseFailed)
         {
             AnsiConsole.MarkupLine("  [red]✕[/] Invalid OpenAPI schema — failed to parse document");
             AnsiConsole.MarkupLine("    [grey]→ Ensure the file is a valid OpenAPI 3.0 or 2.0 specification[/]");
             return 1;
         }
-
-        var versionLabel = result.Diagnostic?.SpecificationVersion switch
-        {
-            OpenApiSpecVersion.OpenApi2_0 => "OpenAPI 2.0",
-            OpenApiSpecVersion.OpenApi3_0 => "OpenAPI 3.0",
-            OpenApiSpecVersion.OpenApi3_1 => "OpenAPI 3.1",
-            _ => "OpenAPI"
-        };
-
-        var endpointCount = document.Paths?.Sum(p => p.Value.Operations?.Count ?? 0) ?? 0;
 
         var schemaSource = isUrl
             ? new SchemaSource(SchemaSourceType.Url, settings.Schema)
