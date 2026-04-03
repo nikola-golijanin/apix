@@ -10,6 +10,11 @@
 		<PackageId>apix</PackageId>
 		<Version>1.0.0</Version>
 		<InvariantGlobalization>true</InvariantGlobalization>
+		<Authors>nikola-golijanin</Authors>
+		<Description>Terminal-native HTTP client for developers managing multiple microservices.</Description>
+		<PackageTags>cli;http;openapi;rest;postman</PackageTags>
+		<RepositoryUrl>https://github.com/nikola-golijanin/apix</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 	</PropertyGroup>
 
 	<ItemGroup>
