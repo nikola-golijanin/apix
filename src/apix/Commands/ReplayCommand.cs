@@ -78,7 +78,7 @@ public class ReplayCommand(IHttpClientFactory httpClientFactory) : AsyncCommand<
                 await using var schemaStream = ServiceRegistry.OpenSchema(settings.Service);
                 var reader = new OpenApiJsonReader();
                 var result = await reader.ReadAsync(schemaStream, new OpenApiReaderSettings(), cancellationToken);
-                if (result.Document is { } doc)
+                if (result.Document is { } doc && historyEntry.OperationId is not null)
                 {
                     var found = FindOperation(doc, historyEntry.OperationId);
                     if (found is not null)
