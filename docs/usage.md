@@ -6,14 +6,23 @@
 - **Endpoint** — an individual HTTP operation parsed from the schema (method + path + operationId)
 - **Request** — an executed HTTP call, stored in local history per service
 - **Body** — for POST/PUT/PATCH requests, constructed interactively via `$EDITOR`
+- **Open request** — a schema-free HTTP call sent to any URL directly, without a registered service
 
 ## Typical workflow
+
+**Schema-driven (registered service):**
 
 1. **Import** a service from its OpenAPI schema URL or a local file
 2. **List endpoints** to explore what operations are available
 3. **Call** an endpoint — apix opens your editor for any parameters or request body
 4. **Inspect history** to review past requests and responses
 5. **Replay** a previous request, optionally editing it first
+
+**Ad-hoc (any URL):**
+
+1. **Open** any URL directly — apix opens your editor to set headers and body
+2. **Inspect open history** to review past open requests
+3. **Replay** a previous open request, optionally editing the URL, method, headers, or body
 
 ## Commands
 
@@ -300,6 +309,143 @@ Replaying #3 — GET /orders/999
 
 ---
 
+### open
+
+Send a raw HTTP request to any URL without a registered service or OpenAPI schema. The editor always opens so you can set headers and body before the request fires.
+
+```
+apix open --url <url>
+apix open --url <url> -x <method>
+apix open --url <url> -x <method> --verbose
+apix open --url <url> -x <method> --no-save
+```
+
+**Options**
+
+| Flag | Description |
+|---|---|
+| `-u, --url` | URL to send the request to (include query params directly in the URL) |
+| `-x, --method` | HTTP method: GET, POST, PUT, DELETE, PATCH, HEAD. Default: GET |
+| `-v, --verbose` | Print full request/response headers and full response body |
+| `--no-save` | Execute without saving to history |
+
+**Examples**
+
+```
+apix open --url https://httpbin.org/get
+apix open --url https://httpbin.org/post -x POST
+apix open --url https://api.example.com/items?page=1&limit=20
+apix open --url https://httpbin.org/get --verbose --no-save
+```
+
+The editor opens with a template for headers and (for POST/PUT/PATCH) body. Fill in your values, save, and close — the request fires immediately.
+
+**Output**
+
+```
+──────────────────────────────────────────────────────────
+  REQUEST
+──────────────────────────────────────────────────────────
+  GET https://httpbin.org/get
+
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 200 OK  [183ms]
+──────────────────────────────────────────────────────────
+
+  Body:
+  {
+    "args": {},
+    "url": "https://httpbin.org/get"
+  }
+
+  Saved as #2 — [apix open history 2] to inspect · [apix open replay 2] to replay
+```
+
+---
+
+### open history
+
+View and inspect past open requests. Open requests are stored globally (not per-service).
+
+**List recent requests**
+
+```
+apix open history
+apix open history --all
+```
+
+**Output**
+
+```
+open — last 20 requests
+──────────────────────────────────────────────────────────────────────────────
+  #   Method   URL                              Status   Duration   When
+──────────────────────────────────────────────────────────────────────────────
+  #1  GET      https://httpbin.org/get          200        183ms    5 min ago
+  #2  POST     https://httpbin.org/post         200        201ms    3 min ago
+  #3  DELETE   https://api.example.com/items/1  404         87ms    just now
+```
+
+Long URLs are truncated to fit the terminal width.
+
+**Inspect a specific request**
+
+```
+apix open history <id>
+apix open history <id> --verbose
+apix open history <id> --request-only
+apix open history <id> --response-only
+apix open history <id> --curl
+```
+
+**Options**
+
+| Flag | Description |
+|---|---|
+| `-a, --all` | Show all history entries (default: last 20) |
+| `-v, --verbose` | Show headers and full response body |
+| `--request-only` | Print only the request block |
+| `--response-only` | Print only the response block |
+| `-c, --curl` | Print the request as a curl command |
+
+---
+
+### open replay
+
+Re-execute a previous open request.
+
+```
+apix open replay <id>
+apix open replay <id> --edit
+apix open replay <id> --no-save
+apix open replay <id> --verbose
+```
+
+**Options**
+
+| Flag | Description |
+|---|---|
+| `-e, --edit` | Open editor pre-filled with stored URL, method, headers, and body before sending |
+| `--no-save` | Execute without saving to history |
+| `-v, --verbose` | Print full request/response headers and full response body |
+
+With `--edit`, the editor template includes `url` and `method` fields so you can change either before sending:
+
+```json
+{
+  "url": "https://httpbin.org/post",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "name": "test"
+  }
+}
+```
+
+---
+
 ### config
 
 Manage global tool configuration.
@@ -335,7 +481,7 @@ Config
 
 ## Editor template workflow
 
-When `call` or `replay --edit` needs input, apix opens your editor with a pre-filled JSON template. Only sections relevant to the operation are included:
+When `call`, `replay --edit`, `open`, or `open replay --edit` needs input, apix opens your editor with a pre-filled JSON template. Only sections relevant to the operation are included:
 
 ```json
 {
@@ -385,5 +531,6 @@ All data is stored locally. No telemetry, no remote sync.
 | Service registry | `~/.apix/services.json` |
 | Cached schemas | `~/.apix/schemas/<name>.json` |
 | Request history | `~/.apix/history/<service>.json` |
+| Open request history | `~/.apix/history/_open.json` |
 | Global config | `~/.apix/config.json` |
 | Body templates (temp) | System temp directory, deleted after send |

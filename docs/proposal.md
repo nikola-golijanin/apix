@@ -628,7 +628,7 @@ A schema-free, curl-like command for hitting any URL directly — no service reg
 ```
 apix open --url <url>
 apix open --url <url> -x <method>
-apix open --url <url> <method> --verbose
+apix open --url <url> -x <method> --verbose
 apix open --url <url> -x <method> --no-save
 ```
 
@@ -636,6 +636,7 @@ apix open --url <url> -x <method> --no-save
 
 | Flag | Description |
 |---|---|
+| `-u, --url` | URL to send the request to (include query params directly in the URL) |
 | `-x, --method` | HTTP method: GET, POST, PUT, DELETE, PATCH, HEAD. Default: GET |
 | `-v, --verbose` | Print full request/response headers and full response body |
 | `--no-save` | Execute but do not save to history |
@@ -643,7 +644,7 @@ apix open --url <url> -x <method> --no-save
 **Behavior:**
 
 - The editor always opens, allowing the user to fill in headers and body before the request fires.
-- Query params are passed directly in the URL: `apix open https://api.example.com/items?page=1&limit=20`
+- Query params are passed directly in the URL: `apix open --url https://api.example.com/items?page=1&limit=20`
 - Editor template for GET/DELETE/HEAD (no body section):
 
 ```json
@@ -774,7 +775,7 @@ Long URLs are truncated to fit terminal width (suffix `…` added). No `Operatio
 
 ```
 No open requests made yet.
-  → Run [apix open <url>] to get started.
+  → Run [apix open --url <url>] to get started.
 ```
 
 **Inspect output**
@@ -1193,10 +1194,10 @@ dotnet run -- replay orderService 3 --verbose
 ### `open`
 
 ```bash
-dotnet run -- open https://httpbin.org/get
-dotnet run -- open https://httpbin.org/post -x POST
-dotnet run -- open https://httpbin.org/get --verbose
-dotnet run -- open https://httpbin.org/get --no-save
+dotnet run -- open --url https://httpbin.org/get
+dotnet run -- open --url https://httpbin.org/post -x POST
+dotnet run -- open --url https://httpbin.org/get --verbose
+dotnet run -- open --url https://httpbin.org/get --no-save
 dotnet run -- open history
 dotnet run -- open history --all
 dotnet run -- open history 2
