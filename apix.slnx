@@ -1,8 +1,54 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/apix/apix.csproj" Id="9270e73e-4b33-4b1f-94b4-dfb2a9e17fb4" />
-  </Folder>
-  <Folder Name="/docs/">
-    <File Path="docs/proposal.md" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/apix/apix.csproj"/>
+    </Folder>
+    <Folder Name="/docs/">
+        <File Path="docs/contributing.md"/>
+        <File Path="docs/proposal.md"/>
+        <File Path="docs/usage.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/">
+        <File Path="docs/technical-docs/overview.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/infrastructure/">
+        <File Path="docs/technical-docs/infrastructure/type-registrar.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/services/">
+        <File Path="docs/technical-docs/services/config-service.md"/>
+        <File Path="docs/technical-docs/services/editor-service.md"/>
+        <File Path="docs/technical-docs/services/history-service.md"/>
+        <File Path="docs/technical-docs/services/service-registry.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/commands/">
+        <File Path="docs/technical-docs/commands/auth.md"/>
+        <File Path="docs/technical-docs/commands/call.md"/>
+        <File Path="docs/technical-docs/commands/history.md"/>
+        <File Path="docs/technical-docs/commands/import.md"/>
+        <File Path="docs/technical-docs/commands/replay.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/commands/open/">
+        <File Path="docs/technical-docs/commands/open/history.md"/>
+        <File Path="docs/technical-docs/commands/open/open.md"/>
+        <File Path="docs/technical-docs/commands/open/replay.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/commands/endpoint/">
+        <File Path="docs/technical-docs/commands/endpoint/details.md"/>
+        <File Path="docs/technical-docs/commands/endpoint/list.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/commands/config/">
+        <File Path="docs/technical-docs/commands/config/get.md"/>
+        <File Path="docs/technical-docs/commands/config/list.md"/>
+        <File Path="docs/technical-docs/commands/config/set.md"/>
+        <File Path="docs/technical-docs/commands/config/unset.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/commands/service/">
+        <File Path="docs/technical-docs/commands/service/list.md"/>
+        <File Path="docs/technical-docs/commands/service/remove.md"/>
+        <File Path="docs/technical-docs/commands/service/update.md"/>
+    </Folder>
+    <Folder Name="/docs/technical-docs/helpers/">
+        <File Path="docs/technical-docs/helpers/output-helpers.md"/>
+        <File Path="docs/technical-docs/helpers/request-helpers.md"/>
+        <File Path="docs/technical-docs/helpers/string-helpers.md"/>
+    </Folder>
 </Solution>

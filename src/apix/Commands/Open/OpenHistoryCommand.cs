@@ -149,26 +149,27 @@ public class OpenHistoryCommand : AsyncCommand<OpenHistoryCommand.Settings>
                 AnsiConsole.WriteLine();
         }
 
-        if (!settings.RequestOnly)
-        {
-            AnsiConsole.MarkupLine($"  [grey]RESPONSE[/]  [{statusColor}]{statusIcon} {e.StatusCode} {e.StatusText}[/]  [grey][[{e.DurationMs}ms]][/]");
-            OutputHelpers.Separator(sepWidth);
+        if (settings.RequestOnly) 
+            return 0;
+        
+        AnsiConsole.MarkupLine($"  [grey]RESPONSE[/]  [{statusColor}]{statusIcon} {e.StatusCode} {e.StatusText}[/]  [grey][[{e.DurationMs}ms]][/]");
+        OutputHelpers.Separator(sepWidth);
 
-            if (settings.Verbose)
-                OutputHelpers.PrintHeaders(e.ResponseHeaders);
+        if (settings.Verbose)
+            OutputHelpers.PrintHeaders(e.ResponseHeaders);
 
-            if (e.ResponseBody is not null)
-            {
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine("  [grey]Body:[/]");
-                var truncated = OutputHelpers.PrintBody(e.ResponseBody, full: settings.Verbose);
-                if (truncated)
-                {
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("  [grey]... lines truncated — rerun with --verbose to print in full[/]");
-                }
-            }
-        }
+        if (e.ResponseBody is null) 
+            return 0;
+            
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("  [grey]Body:[/]");
+            
+        var truncated = OutputHelpers.PrintBody(e.ResponseBody, full: settings.Verbose);
+        if (!truncated) 
+            return 0;
+            
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("  [grey]... lines truncated — rerun with --verbose to print in full[/]");
 
         return 0;
     }
