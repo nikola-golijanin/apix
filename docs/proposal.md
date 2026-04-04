@@ -620,6 +620,260 @@ Replaying #3 — GET /orders/999
 ```
 
 ---
+
+### ✅ `open` — Send a raw HTTP request
+
+A schema-free, curl-like command for hitting any URL directly — no service registration or OpenAPI schema required. The editor always opens so you can set headers and body interactively before the request is sent.
+
+```
+apix open --url <url>
+apix open --url <url> -x <method>
+apix open --url <url> <method> --verbose
+apix open --url <url> -x <method> --no-save
+```
+
+**Flags**
+
+| Flag | Description |
+|---|---|
+| `-x, --method` | HTTP method: GET, POST, PUT, DELETE, PATCH, HEAD. Default: GET |
+| `-v, --verbose` | Print full request/response headers and full response body |
+| `--no-save` | Execute but do not save to history |
+
+**Behavior:**
+
+- The editor always opens, allowing the user to fill in headers and body before the request fires.
+- Query params are passed directly in the URL: `apix open https://api.example.com/items?page=1&limit=20`
+- Editor template for GET/DELETE/HEAD (no body section):
+
+```json
+{
+  "headers": {}
+}
+```
+
+- Editor template for POST/PUT/PATCH:
+
+```json
+{
+  "headers": {},
+  "body": {}
+}
+```
+
+**Output (GET, success)**
+
+```
+──────────────────────────────────────────────────────────
+  REQUEST
+──────────────────────────────────────────────────────────
+  GET https://httpbin.org/get
+
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 200 OK  [183ms]
+──────────────────────────────────────────────────────────
+
+  Body:
+  {
+    "args": {},
+    "headers": { "Host": "httpbin.org" },
+    "url": "https://httpbin.org/get"
+  }
+
+  Saved as #2 — [apix open history 2] to inspect · [apix open replay 2] to replay
+```
+
+**Output (POST with body, `--verbose`)**
+
+```
+──────────────────────────────────────────────────────────
+  REQUEST
+──────────────────────────────────────────────────────────
+  POST https://httpbin.org/post
+
+  Headers:
+    Content-Type    application/json
+
+  Body:
+  {
+    "name": "test",
+    "value": 42
+  }
+
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 200 OK  [201ms]
+──────────────────────────────────────────────────────────
+  Headers:
+    Content-Type    application/json
+
+  Body:
+  {
+    "json": { "name": "test", "value": 42 }
+  }
+
+  Saved as #3 — [apix open history 3] to inspect · [apix open replay 3] to replay
+```
+
+**With `--no-save`**
+
+Footer shows `(not saved to history)` instead of the saved-as line.
+
+**Errors**
+
+```
+✕ Could not connect to https://httpbin.org
+  → Check the URL and your network connection.
+```
+
+```
+✕ Invalid URL: foobar
+  → Provide a full URL including the scheme, e.g. https://example.com/path
+```
+
+---
+
+### ✅ `open history` — List and inspect open request history
+
+Open requests are stored in a global pool at `~/.apix/history/_open.json` — not per-service.
+
+```
+apix open history
+apix open history -a|--all
+apix open history <id>
+apix open history <id> -v|--verbose
+apix open history <id> --request-only
+apix open history <id> --response-only
+apix open history <id> -c|--curl
+```
+
+**Flags**
+
+| Flag | Description |
+|---|---|
+| `-a, --all` | Show all history entries (list mode only, default: last 20) |
+| `-v, --verbose` | Show headers + full body |
+| `--request-only` | Print only the request block |
+| `--response-only` | Print only the response block |
+| `-c, --curl` | Print the request as a curl command |
+
+**List output**
+
+```
+open — last 20 requests
+──────────────────────────────────────────────────────────────────────────────
+  #   Method   URL                              Status   Duration   When
+──────────────────────────────────────────────────────────────────────────────
+  #1  GET      https://httpbin.org/get          200        183ms    5 min ago
+  #2  POST     https://httpbin.org/post         200        201ms    3 min ago
+  #3  DELETE   https://api.example.com/items/1  404         87ms    just now
+```
+
+Long URLs are truncated to fit terminal width (suffix `…` added). No `Operation` column — requests are schema-free. HTTP methods and status codes are color-coded using the same rules as `history`.
+
+**Empty state**
+
+```
+No open requests made yet.
+  → Run [apix open <url>] to get started.
+```
+
+**Inspect output**
+
+```
+─────────────────────────────────────────────────────────────
+  #2 — 4 Apr 2026  14:22:01
+─────────────────────────────────────────────────────────────
+  REQUEST
+─────────────────────────────────────────────────────────────
+  POST https://httpbin.org/post
+
+  Body:
+  {
+    "name": "test",
+    "value": 42
+  }
+
+─────────────────────────────────────────────────────────────
+  RESPONSE  ◆ 200 OK  [201ms]
+─────────────────────────────────────────────────────────────
+  Body:
+  {
+    "json": { "name": "test", "value": 42 }
+  }
+```
+
+**With `--curl`**
+
+```
+curl -X POST https://httpbin.org/post \
+  -H "Content-Type: application/json" \
+  -d '{"name":"test","value":42}'
+```
+
+---
+
+### ✅ `open replay` — Replay an open request
+
+```
+apix open replay <id>
+apix open replay <id> -e|--edit
+apix open replay <id> --no-save
+apix open replay <id> -v|--verbose
+```
+
+**Flags**
+
+| Flag | Description |
+|---|---|
+| `-e, --edit` | Open editor pre-filled with stored URL, method, headers, and body before sending |
+| `--no-save` | Execute but do not save to history |
+| `-v, --verbose` | Print full request/response headers and full body |
+
+**Output**
+
+```
+Replaying #2 — POST https://httpbin.org/post
+
+──────────────────────────────────────────────────────────
+  REQUEST
+──────────────────────────────────────────────────────────
+  POST https://httpbin.org/post
+
+──────────────────────────────────────────────────────────
+  RESPONSE  ◆ 200 OK  [198ms]
+──────────────────────────────────────────────────────────
+
+  Body:
+  {
+    "json": { "name": "test", "value": 42 }
+  }
+
+  Saved as #4 — [apix open history 4] to inspect · [apix open replay 4] to replay
+```
+
+With `--edit`, the editor opens pre-filled with all stored values. Unlike `apix replay`, the template includes `url` and `method` so the user can change either before sending:
+
+```json
+{
+  "url": "https://httpbin.org/post",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "name": "test",
+    "value": 42
+  }
+}
+```
+
+**Error**
+
+```
+✕ No open request found with id #99.
+  → Run [apix open history] to see available requests.
+```
+
 ---
 
 ### ✅ `config` — Manage global configuration
@@ -708,9 +962,12 @@ All data is stored locally on the developer's machine. No telemetry, no remote s
 |---|---|
 | Service registry | `~/.apix/services.json` |
 | Request history | `~/.apix/history/<service>.json` |
+| Open request history | `~/.apix/history/_open.json` |
 | Auth tokens | `~/.apix/auth.json` |
 | Global config | `~/.apix/config.json` |
 | Body templates (temp) | System temp directory, deleted after send |
+
+`_open` is a reserved name and cannot be used as a service name in `apix import`.
 
 ---
 
@@ -825,7 +1082,8 @@ Relevant `.csproj` properties:
 ## Demo Flow (Hackathon Presentation)
 
 1. `apix config set editor` — configure preferred editor
-2. `apix import` — register a live service from its Swagger URL
+2. `apix open` — fire a raw HTTP request at any URL with the interactive editor, no service registration needed
+3. `apix import` — register a live service from its Swagger URL
 3. `apix service list` — show the registry
 4. `apix endpoint list` — explore parsed endpoints
 5. `apix call` — call a GET endpoint with a path param, show `Saved as #N` footer
@@ -930,6 +1188,23 @@ dotnet run -- replay orderService 3
 dotnet run -- replay orderService 3 --edit
 dotnet run -- replay orderService 3 --no-save
 dotnet run -- replay orderService 3 --verbose
+```
+
+### `open`
+
+```bash
+dotnet run -- open https://httpbin.org/get
+dotnet run -- open https://httpbin.org/post -x POST
+dotnet run -- open https://httpbin.org/get --verbose
+dotnet run -- open https://httpbin.org/get --no-save
+dotnet run -- open history
+dotnet run -- open history --all
+dotnet run -- open history 2
+dotnet run -- open history 2 --verbose
+dotnet run -- open history 2 --curl
+dotnet run -- open replay 2
+dotnet run -- open replay 2 --edit
+dotnet run -- open replay 2 --no-save
 ```
 
 ### `config`

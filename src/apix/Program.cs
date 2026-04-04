@@ -2,6 +2,7 @@ using apix.Commands;
 using apix.Commands.Auth;
 using apix.Commands.Config;
 using apix.Commands.Endpoint;
+using apix.Commands.Open;
 using apix.Commands.Service;
 using apix.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +55,15 @@ app.Configure(config =>
 
     config.AddCommand<ReplayCommand>("replay")
           .WithDescription("Re-execute a previous request");
+
+    config.AddBranch("open", open =>
+    {
+        open.SetDefaultCommand<OpenCommand>();
+        open.AddCommand<OpenHistoryCommand>("history")
+            .WithDescription("List or inspect open request history");
+        open.AddCommand<OpenReplayCommand>("replay")
+            .WithDescription("Re-execute a previous open request");
+    });
 
     config.AddBranch("config", cfg =>
     {
